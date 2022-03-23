@@ -100,13 +100,17 @@ class PostURLTests(TestCase):
 
     def test_authorized_can_add_delete_subscription(self):
         """
-        Авторизованный пользователь может подписываться на 
+        Авторизованный пользователь может подписываться на
         других пользователей и удалять их из подписок.
         """
         user = User.objects.create_user(username='another')
-        response = self.authorized_client.get(f'/profile/{user.username}/follow/')
+        response = self.authorized_client.get(
+            f'/profile/{user.username}/follow/'
+        )
         self.assertRedirects(response, f'/profile/{user.username}/')
-        response = self.authorized_client.get(f'/profile/{user.username}/unfollow/')
+        response = self.authorized_client.get(
+            f'/profile/{user.username}/unfollow/'
+        )
         self.assertRedirects(response, f'/profile/{user.username}/')
         user.delete()
 
