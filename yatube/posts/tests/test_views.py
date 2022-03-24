@@ -1,10 +1,10 @@
 import shutil
 import tempfile
-import time
 
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.paginator import Page
 from django.test import Client, TestCase, override_settings
@@ -194,7 +194,6 @@ class PostViewTests(TestCase):
 
     def test_create_post_with_group_appears_in_right_pages(self):
         """Пост с группой появляется на нужных страницах."""
-        CACHE_TIME = 20
         group = Group.objects.create(
             title='Тестовая группа 1',
             slug='test-slug1',
@@ -205,7 +204,7 @@ class PostViewTests(TestCase):
             text='Тестовая пост 100',
             group=group
         )
-        time.sleep(CACHE_TIME)
+        cache.clear()
         response = (
             self.guest_client.
             get(reverse('posts:index'))
@@ -231,19 +230,18 @@ class PostViewTests(TestCase):
 
     def test_cache_index_page(self):
         """Проверка кеширования главной страницы."""
-        CACHE_TIME = 20
         post = Post.objects.create(
             author=PostViewTests.user,
             text='Тестовый пост 55',
         )
         response = self.guest_client.get(reverse('posts:index'))
         self.assertNotContains(response, post.text)
-        time.sleep(CACHE_TIME)
+        cache.clear()
         response = self.guest_client.get(reverse('posts:index'))
         self.assertContains(response, post.text)
         post.delete()
         response = self.guest_client.get(reverse('posts:index'))
         self.assertContains(response, post.text)
-        time.sleep(CACHE_TIME)
+        cache.clear()
         response = self.guest_client.get(reverse('posts:index'))
         self.assertNotContains(response, post.text)
