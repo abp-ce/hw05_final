@@ -23,7 +23,7 @@
   </div>
   {% for post in page_obj %}
     {% include "includes/post_card.html" %}
-    <a href="{% url 'posts:post_detail' post.pk %}">подробная информация </a>
+    <!-- <a href="{% url 'posts:post_detail' post.pk %}">подробная информация </a> -->
     {% if post.group %}   
       <br><a href="{% url 'posts:group_list' post.group.slug %}">все записи группы</a>
     {% endif %}

@@ -10,7 +10,7 @@ from django.core.paginator import Page
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Follow, Group, Post
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -160,7 +160,7 @@ class PostViewTests(TestCase):
             PostViewTests.post.image
         )
 
-    def test_post_detail_pages_show_correct_context(self):
+    def test_post_detail_pages_show_correct_context_and_right_pic(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = (
             self.authorized_client.
@@ -173,6 +173,11 @@ class PostViewTests(TestCase):
         self.assertEqual(response.context.get('author'), PostViewTests.user)
         self.assertEqual(response.context.get('count'),
                          Post.objects.count())
+        # Нет необходимости, т.к проверяли пост целиком в первом assertEqual
+        self.assertEqual(
+            response.context.get('post').image,
+            PostViewTests.post.image
+        )
 
     def test_post_edit_pages_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
@@ -245,3 +250,62 @@ class PostViewTests(TestCase):
         cache.clear()
         response = self.guest_client.get(reverse('posts:index'))
         self.assertNotContains(response, post.text)
+
+    # Тесты были в test_urls.py
+    def test_add_comment_only_authorized(self):
+        """Не авторизованный пользователь не может доавить комментарий."""
+        response = self.guest_client.get(reverse(
+            'posts:post_detail', args=(PostViewTests.post.pk,)
+        ))
+        self.assertNotContains(response, 'Добавить комментарий:')
+
+    def test_authorized_can_add_delete_subscription(self):
+        """
+        Авторизованный пользователь может подписываться на
+        других пользователей и удалять их из подписок.
+        """
+        user = User.objects.create_user(username='another')
+        response = self.authorized_client.get(reverse(
+            'posts:profile_follow', args=(user.username,)
+        ))
+        self.assertRedirects(response, reverse(
+            'posts:profile', args=(user.username,)
+        ))
+        response = self.authorized_client.get(reverse(
+            'posts:profile_unfollow', args=(user.username,)
+        ))
+        self.assertRedirects(response, reverse(
+            'posts:profile', args=(user.username,)
+        ))
+        user.delete()
+
+    def test_new_post_appear_to_followers_only(self):
+        """
+        Новая запись пользователя появляется в ленте тех, кто на него подписан
+        и не появляется в ленте тех, кто не подписан.
+        """
+        user = User.objects.create_user(username='user')
+        follower_user = User.objects.create_user(username='follower_user')
+        post = Post.objects.create(
+            author=PostViewTests.user,
+            text='Тестовый пост 22',
+        )
+        subscription = Follow.objects.create(
+            user=follower_user,
+            author=PostViewTests.user
+        )
+        self.user_client = Client()
+        self.user_client.force_login(user)
+        response = self.user_client.get(reverse(
+            'posts:follow_index'
+        ))
+        self.assertNotContains(response, post.text)
+        self.user_client.force_login(follower_user)
+        response = self.user_client.get(reverse(
+            'posts:follow_index'
+        ))
+        self.assertContains(response, post.text)
+        user.delete()
+        follower_user.delete()
+        post.delete()
+        subscription.delete()

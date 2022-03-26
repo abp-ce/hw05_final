@@ -3,7 +3,7 @@ from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 
-from ..models import Follow, Group, Post
+from ..models import Group, Post
 
 User = get_user_model()
 
@@ -93,50 +93,8 @@ class PostURLTests(TestCase):
             '/auth/login/?next=/create/'
         )
 
-    def test_add_comment_only_authorized(self):
-        """Не авторизованный пользователь не может доавить комментарий."""
-        response = self.guest_client.get(f'/posts/{PostURLTests.post.pk}/')
-        self.assertNotContains(response, 'Добавить комментарий:')
-
-    def test_authorized_can_add_delete_subscription(self):
-        """
-        Авторизованный пользователь может подписываться на
-        других пользователей и удалять их из подписок.
-        """
-        user = User.objects.create_user(username='another')
-        response = self.authorized_client.get(
-            f'/profile/{user.username}/follow/'
-        )
-        self.assertRedirects(response, f'/profile/{user.username}/')
-        response = self.authorized_client.get(
-            f'/profile/{user.username}/unfollow/'
-        )
-        self.assertRedirects(response, f'/profile/{user.username}/')
-        user.delete()
-
-    def test_new_post_appear_to_followers_only(self):
-        """
-        Новая запись пользователя появляется в ленте тех, кто на него подписан
-        и не появляется в ленте тех, кто не подписан.
-        """
-        user = User.objects.create_user(username='user')
-        follower_user = User.objects.create_user(username='follower_user')
-        post = Post.objects.create(
-            author=PostURLTests.user,
-            text='Тестовый пост 22',
-        )
-        subscription = Follow.objects.create(
-            user=follower_user,
-            author=PostURLTests.user
-        )
-        self.user_client = Client()
-        self.user_client.force_login(user)
-        response = self.user_client.get('/follow/')
-        self.assertNotContains(response, post.text)
-        self.user_client.force_login(follower_user)
-        response = self.user_client.get('/follow/')
-        self.assertContains(response, post.text)
-        user.delete()
-        follower_user.delete()
-        post.delete()
-        subscription.delete()
+    # Дублировано с core/tests.py
+    def test_404_page_custom_templete(self):
+        """Страница 404 отдает кастомный шаблон."""
+        response = self.guest_client.get('/unexisting_page/', follow=True)
+        self.assertTemplateUsed(response, 'core/404.html')

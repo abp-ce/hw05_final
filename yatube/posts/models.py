@@ -36,9 +36,10 @@ class Post(models.Model):
         related_name='post_group'
     )
     image = models.ImageField(
-        'Картинка',
         upload_to='posts/',
-        blank=True
+        blank=True,
+        verbose_name='Картинка',
+        help_text='Картинка поста'
     )
 
     class Meta:
@@ -61,7 +62,10 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name='comments'
     )
-    text = models.TextField()
+    text = models.TextField(
+        verbose_name='Текст комментария',
+        help_text='Напишите комментарий'
+    )
     created = models.DateTimeField(auto_now_add=True)
 
 
