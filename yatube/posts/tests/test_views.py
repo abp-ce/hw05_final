@@ -259,10 +259,10 @@ class PostViewTests(TestCase):
         ))
         self.assertNotContains(response, 'Добавить комментарий:')
 
-    def test_authorized_can_add_delete_subscription(self):
+    def test_authorized_can_add_subscription(self):
         """
-        Авторизованный пользователь может подписываться на
-        других пользователей и удалять их из подписок.
+        Авторизованный пользователь может подписываться
+        на других пользователей.
         """
         user = User.objects.create_user(username='another')
         response = self.authorized_client.get(reverse(
@@ -271,6 +271,13 @@ class PostViewTests(TestCase):
         self.assertRedirects(response, reverse(
             'posts:profile', args=(user.username,)
         ))
+        user.delete()
+
+    def test_authorized_can_delete_subscription(self):
+        """
+        Авторизованный пользователь может отписываться от пользователя.
+        """
+        user = User.objects.create_user(username='another')
         response = self.authorized_client.get(reverse(
             'posts:profile_unfollow', args=(user.username,)
         ))
@@ -279,12 +286,10 @@ class PostViewTests(TestCase):
         ))
         user.delete()
 
-    def test_new_post_appear_to_followers_only(self):
+    def test_new_post_appear_to_followers(self):
         """
-        Новая запись пользователя появляется в ленте тех, кто на него подписан
-        и не появляется в ленте тех, кто не подписан.
+        Новая запись пользователя появляется в ленте тех, кто на него подписан.
         """
-        user = User.objects.create_user(username='user')
         follower_user = User.objects.create_user(username='follower_user')
         post = Post.objects.create(
             author=PostViewTests.user,
@@ -295,17 +300,29 @@ class PostViewTests(TestCase):
             author=PostViewTests.user
         )
         self.user_client = Client()
-        self.user_client.force_login(user)
-        response = self.user_client.get(reverse(
-            'posts:follow_index'
-        ))
-        self.assertNotContains(response, post.text)
         self.user_client.force_login(follower_user)
         response = self.user_client.get(reverse(
             'posts:follow_index'
         ))
         self.assertContains(response, post.text)
-        user.delete()
         follower_user.delete()
         post.delete()
         subscription.delete()
+
+    def test_new_post_does_not_appear_to_not_followers(self):
+        """
+        Новая запись пользователя не появляется в ленте тех, кто не подписан.
+        """
+        user = User.objects.create_user(username='user')
+        post = Post.objects.create(
+            author=PostViewTests.user,
+            text='Тестовый пост 22',
+        )
+        self.user_client = Client()
+        self.user_client.force_login(user)
+        response = self.user_client.get(reverse(
+            'posts:follow_index'
+        ))
+        self.assertNotContains(response, post.text)
+        user.delete()
+        post.delete()
