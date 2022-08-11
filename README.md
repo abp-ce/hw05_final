@@ -30,7 +30,7 @@ source venv/bin/activate
 ```
 
 ```
-python3 -m pip install --upgrade pip
+python -m pip install --upgrade pip
 ```
 
 Установить зависимости из файла requirements.txt:
@@ -39,16 +39,22 @@ python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+Создать директории:
+
+```
+mkdir yatube/static yatube/media yatube/sent_emails
+```
+
 Выполнить миграции:
 
 ```
-python3 manage.py migrate
+python manage.py migrate
 ```
 
 Запустить проект:
 
 ```
-python3 manage.py runserver
+python manage.py runserver
 ```
 
 ### Стек:
